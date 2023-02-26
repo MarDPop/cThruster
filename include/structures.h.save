@@ -1,0 +1,12 @@
+#pragma once
+
+#include "../../../lib/Eigen"
+
+class Face_Axisymmtric
+{
+    Fluid<2>
+    Eigen::Vector2d vertex[2];
+    Eigen::Vector2d normal;
+
+
+};
