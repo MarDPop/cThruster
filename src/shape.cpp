@@ -2,19 +2,19 @@
 
 #include <cmath>
 
-RocketProfileShape::RocketProfileShape(std::array<double,2> _start,std::array<double,2> _finish) : prev(nullptr), start(_start), finish(_finish)
+RocketProfileShape::RocketProfileShape(std::array<double,3> _start,std::array<double,3> _finish) : prev(nullptr), start(_start), finish(_finish)
 {}
 
-RocketProfileShape::RocketProfileShape(RocketProfileShape* _prev, std::array<double,2> _finish) : prev(_prev), start(prev->finish), finish(_finish)
+RocketProfileShape::RocketProfileShape(RocketProfileShape* _prev, std::array<double,3> _finish) : prev(_prev), start(prev->finish), finish(_finish)
 
 RocketProfileShape::~RocketProfileShape()
 {
     delete next;
 }
 
-Line::Line(std::array<double,2> _start, std::array<double,2> _finish) : RocketProfileShape(_start,_finish) {}
+Line::Line(std::array<double,3> _start, std::array<double,3> _finish) : RocketProfileShape(_start,_finish) {}
 
-Line::Line(RocketProfileShape* _prev, std::array<double,2> _finish) : RocketProfileShape(_prev,_finish) {}
+Line::Line(RocketProfileShape* _prev, std::array<double,3> _finish) : RocketProfileShape(_prev,_finish) {}
 
 double Line::get_r_from_x(double x) const
 {
@@ -23,8 +23,19 @@ double Line::get_r_from_x(double x) const
     return dx*dydx + start[1];
 }
 
+std::array<double,2> Line::get_point_from_s(double s) const
+{
+    double deltaS = s - start[2];
+    double dx = (finish[0] - start[0]);
+    double dy = (finish[1] - start[1]);
+    double ds = 1.0/sqrt(dx*dx + dy*dy);
+    double dxds = dx*ds;
+    double dyds = dy*ds;
+    return {start[0] + deltaS*dxds, start[1] + deltaS*dyds};
+}
 
-Arc::Arc(RocketProfileShape* _prev, std::array<double,2> _finish, std::array<double,2> _center) : RocketProfileShape(_prev,_finish), center(_center)
+
+Arc::Arc(RocketProfileShape* _prev, std::array<double,3> _finish, std::array<double,2> _center) : RocketProfileShape(_prev,_finish), center(_center)
 {
     double dx = center[0] - start[0];
     double dy = center[1] - start[1];
@@ -36,9 +47,10 @@ Arc* Arc::from_radius(RocketProfileShape* _prev, double radius, double start_ang
     std::array<double,2> center;
     center[0] = prev->finish[0] - cos(start_angle)*radius;
     center[1] = prev->finish[0] - sin(start_angle)*radius;
-    std::array<double,2> finish;
+    std::array<double,3> finish;
     finish[0] = center[0] + cos(finish_angle)*radius;
     finish[1] = center[1] + sin(finish_angle)*radius;
+    finish[2] = prev->finish[0] + radius*fabs(finish_angle - start_angle);
     return new Arc(_prev, finish, center);
 }
 
@@ -54,6 +66,28 @@ double Arc::get_r_from_x(double x) const
     {
         return center[1] + dr;
     }
+}
+
+std::array<double,2> Arc::get_point_from_s(double s) const
+{
+    double deltaS = s - this->start[2];
+    double angle2subtend = deltaS / this->radius;
+
+    std::array<double,2> start_vec = {this->start[0] - this->center[0], this->start[1] - this->center[1]};
+    std::array<double,2> finish_vec = {this->finish[0] - this->center[0], this->finish[1] - this->center[1]};
+
+    // slerp
+    double omega = acos((start_vec[0]*finish_vec[0] + start_vec[1]*finish_vec[1])/(this->radius*this->radius));
+    double t = angle2subtend / omega;
+
+    double sOmega = 1.0/sin(omega);
+    double h1 = sin(angle2subtend);
+    double h2 = sin(omega - angle2subtend);
+
+    std::array<double,2> output;
+    output[0] = (h2*start_vec[0] + h1*finish_vec[0])*sOmega + this->start[0];
+    output[1] = (h2*start_vec[1] + h1*finish_vec[1])*sOmega + this->start[1];
+    return output;
 }
 
 Parabola::Parabola(RocketProfileShape* _prev, std::array<double,2> _finish, std::array<double,2> _coef) : RocketProfileShape(_prev,_finish), coef(_coef)
@@ -74,6 +108,15 @@ double Parabola::get_r_from_x(double x) const
 {
     double dx = x - start[0];
     return sqrt(coef[0]*dx + coef[1]);
+}
+
+std::array<double,2> Parabola::get_point_from_s(double s) const
+{
+    double deltaS = s - this->start[2];
+    // ... you don't want to know the integral for this... just do it numerically
+
+    std::array<double,2> output;
+    return output;
 }
 
 RocketProfile(){}

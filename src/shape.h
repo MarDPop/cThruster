@@ -20,18 +20,18 @@ class RocketProfileShape
 
 public:
 
-    RocketProfileShape(std::array<double,2> _start,std::array<double,2> _finish);
-    RocketProfileShape(RocketProfileShape* _prev, std::array<double,2> _finish);
+    RocketProfileShape(std::array<double,3> _start,std::array<double,3> _finish);
+    RocketProfileShape(RocketProfileShape* _prev, std::array<double,3> _finish);
     virtual ~RocketProfileShape();
 
-    inline bool in_bounds(double x) const
+    inline bool in_bounds(double s) const
     {
-        return x < start[0] || x > finish[0];
+        return s > start[2] && s < finish[2];
     }
 
     virtual double get_r_from_x(double x) const = 0;
 
-    virtual double get_r_from_s(double s) const = 0;
+    virtual std::array<double,2> get_point_from_s(double s) const = 0;
 };
 
 class Line : public virtual RocketProfileShape
@@ -42,6 +42,8 @@ public:
     Line(RocketProfileShape* _prev, std::array<double,2> _finish);
 
     double get_r_from_x(double x) const, override;
+
+    std::array<double,2> get_point_from_s(double s) const, override;
 };
 
 class Arc : public virtual RocketProfileShape
@@ -59,6 +61,8 @@ public:
     static Arc* create(RocketProfileShape* _prev, double radius, double start_angle, double finish_angle);
 
     double get_r_from_x(double x) const, override;
+
+    std::array<double,2> get_point_from_s(double s) const, override;
 };
 
 class Parabola : public virtual RocketProfileShape
