@@ -1,6 +1,7 @@
 #pragma once
 
-struct Boundary_Condition
+struct Boundary
 {
 
+    virtual void condition() = 0;
 };

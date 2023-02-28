@@ -1,0 +1,83 @@
+#pragma once
+
+#include <vector>
+#include <array>
+
+class RocketProfileShape
+{
+    RocketProfileShape* next = nullptr;
+    const RocketProfileShape* prev;
+
+    const std::array<double,2> start;
+    const std::array<double,2> finish;
+
+    RocketProfileShape(std::array<double,2> _start,std::array<double,2> _finish);
+    RocketProfileShape(RocketProfileShape* _prev, std::array<double,2> _finish);
+    virtual ~RocketProfileShape();
+
+    virtual double get_y(double x) = 0;
+};
+
+class Arc : public virtual RocketProfileShape
+{
+    std::array<double,2> center;
+
+    inline std::array<double,2> get_center(std::array<double,2> start, double radius, double start_angle, double finish_angle)
+    {
+
+    }
+
+    inline std::array<double,2> get_next_point(std::array<double,2> start, double radius, double start_angle, double finish_angle)
+    {
+
+    }
+
+
+    Arc(RocketProfileShape* _prev, std::array<double,2> _finish, std::array<double,2> _center);
+    static Arc from_radius(RocketProfileShape* _prev, double radius, double start_angle, double finish_angle);
+
+    double get_y(double x) override;
+};
+
+class Line : public virtual RocketProfileShape
+{
+    Line(std::array<double,2> _start, std::array<double,2> _finish);
+    Line(RocketProfileShape* _prev, std::array<double,2> _finish, std::array<double,2> _center);
+
+    double get_y(double x) override;
+};
+
+class Parabola : public virtual RocketProfileShape
+{
+    std::array<double,2> drdx_start;
+    std::array<double,2> drdx_end;
+
+    double get_y(double x) override;
+};
+
+class RocketProfile
+{
+    RocketProfileShape* start = nullptr;
+
+    double dx_ratio = 0.1; // delta_x is
+
+public:
+
+    Shape();
+    ~Shape();
+
+    inline void set_shape_parameters(double dx_ratio)
+    {
+        this->dx_ratio = dx_ratio;
+    }
+
+    void set_chamber(double combustor_radius, double throat_radius, double combustor angle, double fillet_radius, double length);
+
+    void set_conical_nozzle(double nozzle_fillet, double cone_angle, double exit_radius);
+
+    void set_bell_nozzle(double nozzle_fillet, double cone_angle, double exit_radius);
+
+    void set_parabolic_nozzle(double nozzle_fillet, double cone_angle, double exit_radius);
+
+    std::vector<std::array<double,2>> generate();
+};

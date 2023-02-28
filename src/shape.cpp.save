@@ -1,0 +1,147 @@
+#include "shape.h"
+
+#include <cmath>
+
+RocketProfileShape::RocketProfileShape(std::array<double,2> _start,std::array<double,2> _finish) : prev(nullptr), start(_start), finish(_finish)
+{}
+
+RocketProfileShape::RocketProfileShape(RocketProfileShape* _prev, std::array<double,2> _finish) : prev(_prev), start(prev->finish), finish(_finish)
+
+RocketProfileShape::~RocketProfileShape()
+{
+    delete next;
+}
+
+Line::Line(std::array<double,2> _start, std::array<double,2> _finish) : RocketProfileShape(_start,_finish) {}
+
+Line::Line(RocketProfileShape* _prev, std::array<double,2> _finish) : RocketProfileShape(_prev,_finish) {}
+
+double Line::get_r(double x) const
+{
+    double dx = x - start[0];
+    double dydx = (finish[1] - start[1])/(finish[0] - start[0]);
+    return dx*dydx + start[1];
+}
+
+
+Arc::Arc(RocketProfileShape* _prev, std::array<double,2> _finish, std::array<double,2> _center) : RocketProfileShape(_prev,_finish), center(_center)
+{
+    double dx = center[0] - start[0];
+    double dy = center[1] - start[1];
+    this->radius = sqrt(dx*dx + dy*dy);
+}
+
+Arc* Arc::from_radius(RocketProfileShape* _prev, double radius, double start_angle, double finish_angle)
+{
+    std::array<double,2> center;
+    center[0] = prev->finish[0] - cos(start_angle)*radius;
+    center[1] = prev->finish[0] - sin(start_angle)*radius;
+    std::array<double,2> finish;
+    finish[0] = center[0] + cos(finish_angle)*radius;
+    finish[1] = center[1] + sin(finish_angle)*radius;
+    return new Arc(_prev, finish, center);
+}
+
+double Arc::get_r(double x) const
+{
+    double dx = x - center[0];
+    double dr = sqrt(this->radius*this->radius - dx*dx);
+    if(start[1] < center[1])
+    {
+        return center[1] - dr;
+    }
+    else
+    {
+        return center[1] + dr;
+    }
+}
+
+Parabola::Parabola(RocketProfileShape* _prev, std::array<double,2> _finish, std::array<double,2> _coef) : RocketProfileShape(_prev,_finish), coef(_coef)
+
+Parabola* Parabola::create(RocketProfileShape* _prev, double drdx_start, double r_finish)
+{
+    std::array<double,2> coef;
+    coef[1] = _prev->finish[1]*_prev->finish[1];
+    coef[0] = drdx_start*2*_prev->finish[1];
+    std::array<double,2> finish;
+    finish[0] = (r_finish*r_finish - coef[1])/coef[0];
+    finish[1] = r_finish;
+    return new Parabola(_prev,finish,coef);
+
+}
+
+double Parabola::get_r(double x) const
+{
+    double dx = x - start[0];
+    return sqrt(coef[0]*dx + coef[1]);
+}
+
+Shape(){}
+
+~Shape()
+{
+    delete start;
+}
+
+void Shape::set_chamber(double combustor_radius,
+                        double combustor_inlet_radius,
+                        double throat_radius,
+                        double combustor_angle,
+                        double chamber_fillet_radius,
+                        double throat_fillet_radius,
+                        double length,
+                        double throat_length)
+{
+    delete start;
+    std::array<double,2> point = {0,combustor_radius};
+    std::array<double,2> next = {length,combustor_radius};
+    this->start = new Line(point,next);
+    this->finish = this->start;
+
+    finish[0] = length;
+    finish[1] = combustor_inlet_radius;
+    this->finish.next = new Line(this->finish,finish);
+    this->finish = this->finish.next;
+    this->finish.next = Arc::create(this->finish, chamber_fillet_radius, M_PI, Arc::START_BOTTOM - chamber_fillet_radius);
+    this->finish = this->finish.next;
+
+    finish[1] = throat_radius + sin(throat_fillet_radius);
+    double dr = finish[1] - this->finish->finish[1]
+    double drdx = tan(-chamber_fillet_radius);
+    double dx = dr/drdx;
+    finish[0] = this->finish->finish[0] + dx;
+    this->finish.next = new Line(this->finish,finish);
+    this->finish = this->finish.next;
+
+    dx = sin(throat_fillet_radius);
+    point[0] = this->finish->finish[0] + dx;
+    point[1] = throat_radius + throat_fillet_radius;
+    finish[0] = point[0];
+    finish[1] = throat_radius;
+    this->finish.next = Arc::create(this->finish,finish,point);
+    this->finish = this->finish.next;
+
+    finish[0] = point[0];
+    finish[1] = throat_radius;
+    this->finish.next = new Line(this->finish,finish);
+}
+
+void Shape::set_conical_nozzle(double nozzle_fillet,
+                               double cone_angle,
+                               double exit_radius)
+{
+
+}
+
+void Shape::set_bell_nozzle(double nozzle_fillet,
+                            double cone_angle,
+                            double exit_radius)
+{
+
+}
+
+void Shape::set_parabolic_nozzle(double nozzle_fillet,
+                                 double cone_angle,
+                                 double exit_radius);
+
+std::vector<std::array<double,2>> Shape::generate();

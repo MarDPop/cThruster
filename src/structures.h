@@ -3,7 +3,7 @@
 #include "boundary.h"
 #include "fluid.h"
 
-#include "../lib/Eigen"
+#include "../lib/Eigen/Eigen"
 
 struct Cell_Axisymmetric;
 
@@ -15,7 +15,7 @@ struct Face_Axisymmetric
     Eigen::Vector2d normal;
     double area;
     Cell_Axisymmetric cells[2];
-    BoundaryCondition
+    Boundary* boundary = nullptr;
 
 };
 
