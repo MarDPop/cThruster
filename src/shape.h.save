@@ -3,81 +3,128 @@
 #include <vector>
 #include <array>
 
-class RocketProfileShape
+struct SegmentedCurve
 {
-    RocketProfileShape* next = nullptr;
-    const RocketProfileShape* prev;
+    std::vector<std::array<double,2>> points;
 
-    const std::array<double,2> start;
-    const std::array<double,2> finish;
-
-    RocketProfileShape(std::array<double,2> _start,std::array<double,2> _finish);
-    RocketProfileShape(RocketProfileShape* _prev, std::array<double,2> _finish);
-    virtual ~RocketProfileShape();
-
-    virtual double get_y(double x) = 0;
+    double get(double x);
 };
 
-class Arc : public virtual RocketProfileShape
+class MotorProfileShape
+{
+    MotorProfileShape* next = nullptr;
+    const MotorProfileShape* prev;
+
+    const std::array<double,3> start; // x, r, s
+    const std::array<double,3> finish; // x, r, s
+
+public:
+
+    MotorProfileShape(std::array<double,3> _start,std::array<double,3> _finish);
+    MotorProfileShape(MotorProfileShape* _prev, std::array<double,3> _finish);
+    virtual ~MotorProfileShape();
+
+    inline bool in_bounds(double s) const
+    {
+        return s > start[2] && s < finish[2];
+    }
+
+    virtual double get_r_from_x(double x) const = 0;
+
+    virtual std::array<double,2> get_point_from_s(double s) const = 0;
+};
+
+class Line : public virtual MotorProfileShape
+{
+
+public:
+    Line(std::array<double,2> _start, std::array<double,2> _finish);
+    Line(MotorProfileShape* _prev, std::array<double,2> _finish);
+
+    double get_r_from_x(double x) const, override;
+
+    std::array<double,2> get_point_from_s(double s) const, override;
+};
+
+class Arc : public virtual MotorProfileShape
 {
     std::array<double,2> center;
+    double radius;
 
-    inline std::array<double,2> get_center(std::array<double,2> start, double radius, double start_angle, double finish_angle)
-    {
+public:
 
-    }
+    static constexpr double START_TOP = M_PI/2.0;
+    static constexpr double START_BOTTOM = -M_PI/2.0;
 
-    inline std::array<double,2> get_next_point(std::array<double,2> start, double radius, double start_angle, double finish_angle)
-    {
+    Arc(MotorProfileShape* _prev, std::array<double,2> _finish, std::array<double,2> _center);
 
-    }
+    static Arc* create(MotorProfileShape* _prev, double radius, double start_angle, double finish_angle);
 
+    double get_r_from_x(double x) const, override;
 
-    Arc(RocketProfileShape* _prev, std::array<double,2> _finish, std::array<double,2> _center);
-    static Arc from_radius(RocketProfileShape* _prev, double radius, double start_angle, double finish_angle);
-
-    double get_y(double x) override;
+    std::array<double,2> get_point_from_s(double s) const, override;
 };
 
-class Line : public virtual RocketProfileShape
+class Parabola : public virtual MotorProfileShape
 {
-    Line(std::array<double,2> _start, std::array<double,2> _finish);
-    Line(RocketProfileShape* _prev, std::array<double,2> _finish, std::array<double,2> _center);
+    std::array<double,2> coef;
 
-    double get_y(double x) override;
+public:
+
+    Parabola(MotorProfileShape* _prev, std::array<double,2> _finish, std::array<double,2> _coef);
+
+    static Parabola* create(MotorProfileShape* _prev, double drdx_start, double r_finish);
+
+    double get_r_from_x(double x) const, override;
 };
 
-class Parabola : public virtual RocketProfileShape
-{
-    std::array<double,2> drdx_start;
-    std::array<double,2> drdx_end;
+class MotorProfile
 
-    double get_y(double x) override;
-};
-
-class RocketProfile
-{
-    RocketProfileShape* start = nullptr;
+    MotorProfileShape* firt_ = nullptr;
+    MotorProfileShape* last_shape = nullptr;
 
     double dx_ratio = 0.1; // delta_x is
 
 public:
 
-    Shape();
-    ~Shape();
+    MotorProfile();
+    ~MotorProfile();
 
     inline void set_shape_parameters(double dx_ratio)
     {
         this->dx_ratio = dx_ratio;
     }
 
-    void set_chamber(double combustor_radius, double throat_radius, double combustor angle, double fillet_radius, double length);
+    void set_blended_chamber(double combustor_radius,
+                             double throat_radius,
+                             double combustor_angle,
+                             double fillet_radius,
+                             double length) = 0;
 
-    void set_conical_nozzle(double nozzle_fillet, double cone_angle, double exit_radius);
+    void set_chamber(   double combustor_radius,
+                        double combustor_inlet_radius,
+                        double throat_radius,
+                        double combustor_angle,
+                        double chamber_fillet_radius,
+                        double throat_fillet_radius,
+                        double length,
+                        double throat_length);
 
-    void set_bell_nozzle(double nozzle_fillet, double cone_angle, double exit_radius);
+    void set_conical_nozzle(double nozzle_fillet,
+                            double cone_angle,
+                            double exit_radius);
 
-    void set_parabolic_nozzle(double nozzle_fillet, double cone_angle, double exit_radius);
+    void set_bell_nozzle(double nozzle_fillet,
+                        double cone_angle,
+                        double exit_radius,
+                        double bell_radius,
+                        double initial_turn_radius_fraction = 0.382);
 
-    std::vector<std::array<double,2>> generate();
+    void set_parabolic_nozzle(double nozzle_fillet,
+                             double cone_angle,
+                             double exit_radius,
+                             double initial_turn_angle,
+                             double initial_turn_radius_fraction = 0.382);
+
+    SegmentedCurve generate();
 };

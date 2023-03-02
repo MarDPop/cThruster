@@ -1,3 +1,20 @@
 # depslib dependency file v1.0
-1677451434 source:c:\users\mariu\onedrive\documents\repos\rocket\cthruster\cthruster\src\main.cpp
+1677730276 source:c:\users\mariu\onedrive\documents\repos\rocket\cthruster\cthruster\src\main.cpp
+	"shape.h"
+	<fstream>
+	<vector>
+	<array>
+
+1677551179 source:c:\users\mariu\onedrive\documents\repos\rocket\cthruster\cthruster\src\simulation.cpp
+	"simulation.h"
+
+1677447096 c:\users\mariu\onedrive\documents\repos\rocket\cthruster\cthruster\src\simulation.h
+
+1677733464 c:\users\mariu\onedrive\documents\repos\rocket\cthruster\cthruster\src\shape.h
+	<vector>
+	<array>
+
+1677733296 source:c:\users\mariu\onedrive\documents\repos\rocket\cthruster\cthruster\src\shape.cpp
+	"shape.h"
+	<cmath>
 

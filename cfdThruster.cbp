@@ -12,6 +12,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
+					<Add option="-std=c++17" />
 					<Add option="-g" />
 				</Compiler>
 			</Target>
@@ -31,6 +32,14 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="src/boundary.h" />
+		<Unit filename="src/fluid.h" />
+		<Unit filename="src/main.cpp" />
+		<Unit filename="src/shape.cpp" />
+		<Unit filename="src/shape.h" />
+		<Unit filename="src/simulation.cpp" />
+		<Unit filename="src/simulation.h" />
+		<Unit filename="src/structures.h" />
 		<Extensions />
 	</Project>
 </CodeBlocks_project_file>
