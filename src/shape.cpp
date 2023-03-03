@@ -42,19 +42,19 @@ std::array<double,2> Line::get_point_from_s(double s) const
 Arc::Arc(MotorProfileShape* _prev, std::array<double,3> _finish, std::array<double,2> _center) : MotorProfileShape(_prev,_finish), center(_center)
 {
     double dx = center[0] - start[0];
-    double dy = center[1] - start[1];
-    this->radius = sqrt(dx*dx + dy*dy);
+    double dr = center[1] - start[1];
+    this->radius = sqrt(dx*dx + dr*dr);
 }
 
 Arc* Arc::create(MotorProfileShape* _prev, double radius, double start_angle, double finish_angle)
 {
     std::array<double,2> center;
     center[0] = _prev->finish[0] - cos(start_angle)*radius;
-    center[1] = _prev->finish[0] - sin(start_angle)*radius;
+    center[1] = _prev->finish[1] - sin(start_angle)*radius;
     std::array<double,3> finish;
     finish[0] = center[0] + cos(finish_angle)*radius;
     finish[1] = center[1] + sin(finish_angle)*radius;
-    finish[2] = _prev->finish[0] + radius*fabs(finish_angle - start_angle);
+    finish[2] = _prev->finish[2] + radius*fabs(finish_angle - start_angle);
     return new Arc(_prev, finish, center);
 }
 
@@ -82,15 +82,14 @@ std::array<double,2> Arc::get_point_from_s(double s) const
 
     // slerp
     double omega = acos((start_vec[0]*finish_vec[0] + start_vec[1]*finish_vec[1])/(this->radius*this->radius));
-    double t = angle2subtend / omega;
 
     double sOmega = 1.0/sin(omega);
     double h1 = sin(angle2subtend);
     double h2 = sin(omega - angle2subtend);
 
     std::array<double,2> output;
-    output[0] = (h2*start_vec[0] + h1*finish_vec[0])*sOmega + this->start[0];
-    output[1] = (h2*start_vec[1] + h1*finish_vec[1])*sOmega + this->start[1];
+    output[0] = (h2*start_vec[0] + h1*finish_vec[0])*sOmega + this->center[0];
+    output[1] = (h2*start_vec[1] + h1*finish_vec[1])*sOmega + this->center[1];
     return output;
 }
 
@@ -133,7 +132,7 @@ double Parabola::get_r_from_x(double x) const
 
 std::array<double,2> Parabola::get_point_from_s(double s) const
 {
-    double deltaS = s - this->start[2];
+    const double deltaS = s - this->start[2];
     // ... you don't want to know the integral for this... just do it numerically
     // integral for y
     int nIntegrationSteps = 1000;
@@ -141,7 +140,7 @@ std::array<double,2> Parabola::get_point_from_s(double s) const
     double C = coef[0]*coef[0]*0.25;
     double sIntegrated = 0;
     double x = 0;
-    while(sIntegrated < s)
+    while(sIntegrated < deltaS)
     {
         double dsdx = sqrt(1 + C/(coef[0]*x + coef[1])); // sqrt(1 + (dr/dx)^2)
         double ds = dsdx*dx;
@@ -149,10 +148,12 @@ std::array<double,2> Parabola::get_point_from_s(double s) const
         x += dx;
     }
     // back track overshoot
-    double ds = sIntegrated - s;
+    double ds = sIntegrated - deltaS;
     double dsdx = sqrt(1 + C/(coef[0]*x + coef[1]));
     dx = ds/dsdx;
     x += dx;
+
+    x += this->start[0];
     std::array<double,2> output = {x , this->get_r_from_x(x)};
     return output;
 }
@@ -205,16 +206,24 @@ void MotorProfile::set_chamber(double combustor_radius,
     this->last_shape->next = Arc::create(this->last_shape, chamber_fillet_radius, M_PI, Arc::START_BOTTOM - combustor_angle);
     this->last_shape = this->last_shape->next;
 
-    next[1] = throat_radius + sin(throat_fillet_radius);
+    double r_throat_fillet_start = throat_radius + throat_fillet_radius*(1.0 - cos(combustor_angle));
+
+    if(r_throat_fillet_start > this->last_shape->finish[1])
+    {
+        r_throat_fillet_start = this->last_shape->finish[1];
+        double proj = (r_throat_fillet_start - throat_radius);
+        throat_fillet_radius = proj/(1.0 - cos(combustor_angle));
+    }
+    next[1] = r_throat_fillet_start;
     double dr = next[1] - this->last_shape->finish[1];
     double drdx = tan(-combustor_angle);
     double dx = dr/drdx;
     next[0] = this->last_shape->finish[0] + dx;
-    next[2] = this->last_shape->finish[2] + sqrt(dr*dr + dx*dx);
+    next[2] = this->last_shape->finish[2] + sqrt(dx*dx + dr*dr);
     this->last_shape->next = new Line(this->last_shape,next);
     this->last_shape = this->last_shape->next;
 
-    dx = sin(throat_fillet_radius);
+    dx = throat_fillet_radius*sin(combustor_angle);
     std::array<double,2> center;
     center[0] = this->last_shape->finish[0] + dx;
     center[1] = throat_radius + throat_fillet_radius;
@@ -231,29 +240,27 @@ void MotorProfile::set_chamber(double combustor_radius,
     this->last_shape = this->last_shape->next;
 }
 
-void MotorProfile::set_conical_nozzle(double nozzle_fillet,
-                               double cone_angle,
-                               double exit_radius,
-                               double initial_turn_radius_fraction)
+void MotorProfile::set_conical_nozzle(double exit_radius,
+                                      double cone_angle,
+                                        double initial_turn_radius_fraction)
 {
     double throat_exit_radius = initial_turn_radius_fraction*this->last_shape->finish[1];
 
     this->last_shape->next = Arc::create(this->last_shape, throat_exit_radius, Arc::START_BOTTOM, Arc::START_BOTTOM + cone_angle);
     this->last_shape = this->last_shape->next;
 
+    double dx = (exit_radius - this->last_shape->finish[1]) / tan(cone_angle);
+    double dr = exit_radius - this->last_shape->finish[1];
+
     std::array<double,3> next;
+    next[0] = this->last_shape->finish[0] + dx;
     next[1] = exit_radius;
-    next[0] = (exit_radius - this->last_shape->finish[1]) / tan(cone_angle);
-    double dx = next[0] - this->last_shape->finish[0];
-    double dr = next[1] - this->last_shape->finish[1];
     next[2] = this->last_shape->finish[2] + sqrt(dx*dx + dr*dr);
     this->last_shape->next = new Line(this->last_shape, next);
     this->last_shape = this->last_shape->next;
 }
 
-void MotorProfile::set_bell_nozzle(double nozzle_fillet,
-                            double cone_angle,
-                            double exit_radius,
+void MotorProfile::set_bell_nozzle(double exit_radius,
                             double bell_radius,
                             double initial_turn_radius_fraction)
 {
@@ -269,14 +276,12 @@ void MotorProfile::set_bell_nozzle(double nozzle_fillet,
     this->last_shape->next = Arc::create(this->last_shape, throat_exit_radius, Arc::START_BOTTOM, Arc::START_BOTTOM + turn_angle);
     this->last_shape = this->last_shape->next;
 
-    this->last_shape->next = Arc::create(this->last_shape, bell_radius, Arc::START_TOP - turn_angle, Arc::START_TOP);
+    this->last_shape->next = Arc::create(this->last_shape, bell_radius, Arc::START_TOP + turn_angle, Arc::START_TOP);
     this->last_shape = this->last_shape->next;
 
 }
 
-void MotorProfile::set_parabolic_nozzle(double nozzle_fillet,
-                                 double cone_angle,
-                                 double exit_radius,
+void MotorProfile::set_parabolic_nozzle(double exit_radius,
                                  double initial_turn_angle,
                                  double initial_turn_radius_fraction)
 {
@@ -285,11 +290,13 @@ void MotorProfile::set_parabolic_nozzle(double nozzle_fillet,
     this->last_shape->next = Arc::create(this->last_shape, throat_exit_radius, Arc::START_BOTTOM, Arc::START_BOTTOM + initial_turn_angle);
     this->last_shape = this->last_shape->next;
 
+    this->last_shape->next = Parabola::create(this->last_shape,tan(initial_turn_angle),exit_radius);
+    this->last_shape = this->last_shape->next;
 }
 
-std::vector<std::array<double,2>> MotorProfile::generate()
+std::array<std::vector<double>,2> MotorProfile::generate()
 {
-    std::vector<std::array<double,2>> output;
+    std::array<std::vector<double>,2> output;
 
     auto* shape = this->first_shape;
 
@@ -297,7 +304,8 @@ std::vector<std::array<double,2>> MotorProfile::generate()
     while(shape)
     {
         auto point = shape->get_point_from_s(s);
-        output.push_back(point);
+        output[0].push_back(point[0]);
+        output[1].push_back(point[1]);
         double ds = point[1]*this->dx_ratio;
         s += ds;
 

@@ -54,7 +54,7 @@ class Arc : public virtual MotorProfileShape
 public:
 
     static constexpr double START_TOP = M_PI/2.0;
-    static constexpr double START_BOTTOM = -M_PI/2.0;
+    static constexpr double START_BOTTOM = M_PI*1.5;
 
     Arc(MotorProfileShape* _prev, std::array<double,3> _finish, std::array<double,2> _center);
 
@@ -85,7 +85,7 @@ class MotorProfile
     MotorProfileShape* first_shape = nullptr;
     MotorProfileShape* last_shape = nullptr;
 
-    double dx_ratio = 0.01; // delta_x is
+    double dx_ratio = 0.05; // delta_x is
 
 public:
 
@@ -113,22 +113,17 @@ public:
                         double length,
                         double throat_length);
 
-    void set_conical_nozzle(double nozzle_fillet,
+    void set_conical_nozzle(double exit_radius,
                             double cone_angle,
-                            double exit_radius,
                             double initial_turn_radius_fraction = 0.382);
 
-    void set_bell_nozzle(double nozzle_fillet,
-                        double cone_angle,
-                        double exit_radius,
+    void set_bell_nozzle(double exit_radius,
                         double bell_radius,
                         double initial_turn_radius_fraction = 0.382);
 
-    void set_parabolic_nozzle(double nozzle_fillet,
-                             double cone_angle,
-                             double exit_radius,
+    void set_parabolic_nozzle(double exit_radius,
                              double initial_turn_angle,
                              double initial_turn_radius_fraction = 0.382);
 
-    std::vector<std::array<double,2>> generate();
+    std::array<std::vector<double>,2> generate();
 };

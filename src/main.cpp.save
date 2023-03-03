@@ -20,12 +20,12 @@ void test()
 
     double combustor_radius = 0.15;
     double combustor_inlet_radius = 0.1;
-    double throat_radius = 
-    double combustor_angle,
-    double chamber_fillet_radius,
-    double throat_fillet_radius,
-    double length,
-    double throat_length
+    double throat_radius = 0.05;
+    double combustor_angle = 0.4;
+    double chamber_fillet_radius = 0.025;
+    double throat_fillet_radius = 0.05;
+    double length = 0.25;
+    double throat_length = 0;
 
     shape.set_chamber(  combustor_radius,
                         combustor_inlet_radius,
@@ -35,6 +35,24 @@ void test()
                         throat_fillet_radius,
                         length,
                         throat_length);
+
+
+    double exit_radius = 0.1;
+    int type = 1;
+    if(type == 1)
+    {
+        shape.set_bell_nozzle(exit_radius,exit_radius*2);
+    }
+    else if (type == 2)
+    {
+        shape.set
+    }
+    else
+    {
+        double cone_angle = 0.2;
+        shape.set_conical_nozzle(  exit_radius, cone_angle );
+    }
+
 
     auto curve = shape.generate();
 
