@@ -43,20 +43,6 @@ void add_wall_ghosts(  std::vector<GhostFace_Axisymmetric>& ghost_faces,
                             std::vector<GhostCell_Axisymmetric>& ghost_cells,
                             const std::array<std::vector<double>,2>& motor_profile)
 {
-
-}
-
-void add_interior_ghosts(  std::vector<GhostFace_Axisymmetric>& ghost_faces,
-                            std::vector<GhostCell_Axisymmetric>& ghost_cells)
-{
-
-}
-
-void AxisymmetricMesh::generate_from_profile(const std::array<std::vector<double>,2>& motor_profile, Generation_Options& options)
-{
-    std::vector<GhostFace_Axisymmetric> ghost_faces;
-    std::vector<GhostCell_Axisymmetric> ghost_cells;
-
     unsigned nPoints = motor_profile.size();
     unsigned nFaces = nPoints - 1;
     current_vertex_ids.resize(nFaces);
@@ -115,10 +101,23 @@ void AxisymmetricMesh::generate_from_profile(const std::array<std::vector<double
 
             top_left_corner_idx++;
         }
-
-
         offset_distance*= options.wall_geometric_fractor;
     }
+}
+
+void add_interior_ghosts(  std::vector<GhostFace_Axisymmetric>& ghost_faces,
+                            std::vector<GhostCell_Axisymmetric>& ghost_cells,
+                            const std::array<std::vector<double>,2>& motor_profile)
+{
+
+}
+
+void AxisymmetricMesh::generate_from_profile(const std::array<std::vector<double>,2>& motor_profile, Generation_Options& options)
+{
+    std::vector<GhostFace_Axisymmetric> ghost_faces;
+    std::vector<GhostCell_Axisymmetric> ghost_cells;
+
+
 
     std::vector<int> current_vertex_ids;
     std::vector<int> next_vertex_ids;

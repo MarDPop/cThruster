@@ -19,12 +19,21 @@ struct Vertex_Axisymmtric
     std::set<Face_Axisymmetric*> faces;
 
     Vertex_Axisymmtric();
-    Vertex_Axisymmtric(std::array<double,2> _point);
+    Vertex_Axisymmtric(double x, double r);
+    Vertex_Axisymmtric(Eigen::Vector2d _ point);
+};
+
+struct
+
+struct GhostCell_Axisymmetric
+{
+    std::vector<int> ghost_face_id;
 };
 
 struct GhostFace_Axisymmetric
 {
     std::array<unsigned,2> vertex_id;
+    GhostFace_Axisymmetric(unsigned point1, unsigned point2) : vertex_id{point1, point2} {}
 };
 
 struct Face_Axisymmetric
@@ -42,10 +51,7 @@ struct Face_Axisymmetric
     Fluid_Axisymmetric(Vertex_Axisymmtric* p1, Vertex_Axisymmtric* p2);
 };
 
-struct GhostCell_Axisymmetric
-{
-    std::vector<int,2> vertex_id;
-};
+
 
 struct Cell_Axisymmetric
 {

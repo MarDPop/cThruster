@@ -35,10 +35,13 @@
 		<Unit filename="src/boundary.h" />
 		<Unit filename="src/fluid.h" />
 		<Unit filename="src/main.cpp" />
+		<Unit filename="src/mesh.cpp" />
+		<Unit filename="src/mesh.h" />
 		<Unit filename="src/shape.cpp" />
 		<Unit filename="src/shape.h" />
 		<Unit filename="src/simulation.cpp" />
 		<Unit filename="src/simulation.h" />
+		<Unit filename="src/structures.cpp" />
 		<Unit filename="src/structures.h" />
 		<Extensions />
 	</Project>

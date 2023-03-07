@@ -19,7 +19,8 @@ friend class Simulation;
                             const std::array<std::vector<double>,2>& motor_profile);
 
     void add_interior_ghosts(  std::vector<GhostFace_Axisymmetric>& ghost_faces,
-                                std::vector<GhostCell_Axisymmetric>& ghost_cells);
+                                std::vector<GhostCell_Axisymmetric>& ghost_cells,
+                                const std::array<std::vector<double>,2>& motor_profile);
 
 public:
 
